@@ -1,15 +1,6 @@
+use utils::read_input;
 use std::collections::HashSet;
-use std::io::prelude::*;
 use std::iter::FromIterator;
-use std::fs::File;
-
-fn read_input(path : &str) -> String {
-    let mut f = File::open(path).expect("File not found.");
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("Error reading the file contents.");
-    contents
-}
 
 fn sort_word_chars(word : &str) -> String {
     let mut chars : Vec<char> = word.chars().collect();

@@ -1,12 +1,8 @@
-use std::fs::File;
-use std::io::prelude::*;
+use utils::read_input;
 use std;
 
 pub fn day_two() {
-    let mut f = File::open("data/day_two.txt").expect("File not found.");
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("Error reading the file contents.");
+    let contents = read_input("data/day_two.txt");
     let mut checksum = 0;
 
     for line in contents.split('\n') {
@@ -38,10 +34,7 @@ pub fn day_two() {
 }
 
 pub fn day_two_part_two() {
-    let mut f = File::open("data/day_two.txt").expect("File not found.");
-    let mut contents = String::new();
-    f.read_to_string(&mut contents)
-        .expect("Error reading the file contents.");
+    let contents = read_input("data/day_two.txt");
     let mut checksum = 0;
 
     for line in contents.split('\n') {
