@@ -4,22 +4,31 @@ pub fn day_three() {
     let mut square = 0;
 
     loop {
-        square = base*base;
+        square = base * base;
         if square > input {
             println!("The length of the side of the grid is {}.", base);
-            println!("The number at the bottom right corner of the grid is {}.", square);
+            println!(
+                "The number at the bottom right corner of the grid is {}.",
+                square
+            );
             break;
         }
 
         base += 2;
     }
 
-    println!("Our number is at {} steps up from the number at the bottom corner.", square-input);
+    println!(
+        "Our number is at {} steps up from the number at the bottom corner.",
+        square - input
+    );
     println!("Therefore our number is on the right edge of the grid.");
     println!("To get to 1, we need first to move down or up until the midsection of the edge.");
 
     let half_side = (base as f32 / 2.0).ceil() as i32;
-    println!("The midsection is at number #{} on the grid's edge.", half_side);
+    println!(
+        "The midsection is at number #{} on the grid's edge.",
+        half_side
+    );
     let move_down = (square - input) - half_side;
     println!("We need {} movements to get there.", move_down);
 
@@ -29,21 +38,29 @@ pub fn day_three() {
 
 #[derive(Copy, Clone)]
 enum Direction {
-    RIGHT, UP, LEFT, DOWN
+    RIGHT,
+    UP,
+    LEFT,
+    DOWN,
 }
 
 struct Grid {
     grid: Vec<Vec<i32>>,
     direction: Direction,
-    x : usize,
-    y : usize,
+    x: usize,
+    y: usize,
 }
 
 impl Grid {
     // Constructor takes the size of the grid, the initial direction of movement, and the
     // coordinates of the cell we start from.
-    fn new(edge : usize, direction : Direction, x: usize, y : usize) -> Grid {
-        let mut new_grid = Grid { grid: Vec::with_capacity(edge), direction, x, y};
+    fn new(edge: usize, direction: Direction, x: usize, y: usize) -> Grid {
+        let mut new_grid = Grid {
+            grid: Vec::with_capacity(edge),
+            direction,
+            x,
+            y,
+        };
 
         // Make the grid an edgexedge "matrix" filled with zeroes.
         for _ in 0..edge {
@@ -68,14 +85,14 @@ impl Grid {
             Direction::RIGHT => new_y += 1,
             Direction::UP => new_x -= 1,
             Direction::LEFT => new_y -= 1,
-            Direction::DOWN => new_x += 1
+            Direction::DOWN => new_x += 1,
         }
 
         (new_x, new_y)
     }
 
     // Actually move forward in the current direction.
-    fn move_forward(& mut self) {
+    fn move_forward(&mut self) {
         let (new_x, new_y) = self.get_coords_to_move();
         self.x = new_x;
         self.y = new_y;
@@ -120,19 +137,19 @@ impl Grid {
         return sum;
     }
 
-    fn set_cell(&mut self, value : i32) {
+    fn set_cell(&mut self, value: i32) {
         self.grid[self.x][self.y] = value;
     }
 
     // Decides whether we should change direction for the next movement.
     fn maybe_change_direction(&mut self) {
-        let next_direction : Direction;
+        let next_direction: Direction;
 
         match self.direction {
             Direction::RIGHT => next_direction = Direction::UP,
             Direction::UP => next_direction = Direction::LEFT,
             Direction::LEFT => next_direction = Direction::DOWN,
-            Direction::DOWN => next_direction = Direction::RIGHT
+            Direction::DOWN => next_direction = Direction::RIGHT,
         }
 
         // Try to move in the new direction; if we encounter a cell set to 0, then
@@ -151,9 +168,9 @@ impl Grid {
 // For part two I build each item in the grid until I find the result.
 pub fn day_three_part_two() {
     let input = 325489;
-    let edge : usize = 10;
+    let edge: usize = 10;
 
-    let x : usize = (edge as f32 / 2.0).ceil() as usize;
+    let x: usize = (edge as f32 / 2.0).ceil() as usize;
     let mut grid = Grid::new(edge, Direction::RIGHT, x, x);
 
     grid.set_cell(1);

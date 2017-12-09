@@ -1,6 +1,6 @@
 // Day 1.
 
-fn get_char_as_digit(input : &str, index: usize) -> u32 {
+fn get_char_as_digit(input: &str, index: usize) -> u32 {
     let ch = input.chars().nth(index).unwrap();
     let opt = ch.to_digit(10);
 
@@ -17,7 +17,7 @@ pub fn day_one(steps_forward: usize) {
 
     for i in 0..input.len() {
         let num_cur = get_char_as_digit(input, i);
-        let num_next = get_char_as_digit(input, (i+steps_forward) % input.len());
+        let num_next = get_char_as_digit(input, (i + steps_forward) % input.len());
 
         if num_cur == num_next {
             sum += num_cur;

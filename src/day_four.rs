@@ -2,8 +2,8 @@ use utils::read_input;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-fn sort_word_chars(word : &str) -> String {
-    let mut chars : Vec<char> = word.chars().collect();
+fn sort_word_chars(word: &str) -> String {
+    let mut chars: Vec<char> = word.chars().collect();
     chars.sort_by(|a, b| b.cmp(a));
     String::from_iter(chars)
 }
@@ -13,7 +13,7 @@ pub fn day_four_part_two() {
     let mut valid_count = 0;
 
     for passphrase in contents.split('\n') {
-        let mut sorted_words : HashSet<String> = HashSet::new();
+        let mut sorted_words: HashSet<String> = HashSet::new();
         let mut is_good = true;
 
         for word in passphrase.split(' ') {
@@ -32,7 +32,10 @@ pub fn day_four_part_two() {
         }
     }
 
-    println!("Day 4 part 2. Count of valid passphrases is {}.", valid_count);
+    println!(
+        "Day 4 part 2. Count of valid passphrases is {}.",
+        valid_count
+    );
 }
 
 pub fn day_four() {
@@ -56,5 +59,8 @@ pub fn day_four() {
         }
     }
 
-    println!("Day 4 part 1. Count of valid passphrases is {}", valid_count);
+    println!(
+        "Day 4 part 1. Count of valid passphrases is {}",
+        valid_count
+    );
 }
