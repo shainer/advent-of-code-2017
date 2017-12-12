@@ -4,12 +4,16 @@ use utils::read_input;
 struct Program {
     name: String,
     weight: i32,
-    children: Vec<String>
+    children: Vec<String>,
 }
 
 impl Program {
-    fn new(name: String, weight: i32, children : Vec<String>) -> Program {
-        Program { name, weight, children }
+    fn new(name: String, weight: i32, children: Vec<String>) -> Program {
+        Program {
+            name,
+            weight,
+            children,
+        }
     }
 
     fn add_child(mut self, c: String) {
@@ -21,26 +25,31 @@ impl Program {
     }
 
     fn print(&self) {
-        println!("Name {} and weight {}, children {:?}", self.name, self.weight, self.children);
+        println!(
+            "Name {} and weight {}, children {:?}",
+            self.name,
+            self.weight,
+            self.children
+        );
     }
 }
 
-fn parse_input_programs(filename : &str) -> HashMap<String, Program> {
-    let mut programs : HashMap<String, Program> = HashMap::new();
+fn parse_input_programs(filename: &str) -> HashMap<String, Program> {
+    let mut programs: HashMap<String, Program> = HashMap::new();
 
     for line in read_input(filename).split('\n') {
         if line.len() == 0 {
             continue;
         }
 
-        let pieces : Vec<&str> = line.split(' ').collect();
-        let name : String = String::from(pieces[0]);
+        let pieces: Vec<&str> = line.split(' ').collect();
+        let name: String = String::from(pieces[0]);
 
         let mut tmp = String::from(pieces[1]);
         tmp.remove(0);
         tmp.pop();
-        let weight : i32 = tmp.parse().expect("Invalid weight found.");
-        let mut children : Vec<String> = Vec::new();
+        let weight: i32 = tmp.parse().expect("Invalid weight found.");
+        let mut children: Vec<String> = Vec::new();
 
         if pieces.len() > 3 {
             for i in 3..pieces.len() {
@@ -82,61 +91,98 @@ fn find_root(programs: &HashMap<String, Program>) -> Option<String> {
     None
 }
 
-fn all_children_same_weight(children: &Vec<String>, programs: &HashMap<String, Program>) -> Option<i32> {
-    let shared_weight : i32;
+fn compute_subtower_weight(child: &String, programs: &HashMap<String, Program>) -> i32 {
+    let child_program = programs.get(child).expect("Nope.");
+    let mut subtower_weight = child_program.weight;
 
-    match programs.get(&children[0]) {
-        Some(child) => shared_weight = child.weight,
-        None => panic!("Expect at least 1 child, got zero")
+    for grandchild in child_program.children.iter() {
+        subtower_weight += compute_subtower_weight(grandchild, programs);
     }
 
-    for child_name in children {
-        match programs.get(child_name) {
-            Some(child) => if shared_weight != child.weight { return None; }
-            None => panic!("Expect to find child.")
+    subtower_weight
+}
+
+fn all_weights_the_same(weights: &Vec<i32>) -> bool {
+    if weights.is_empty() {
+        return true;
+    }
+
+    let shared_item = weights[0];
+    for item in weights {
+        if *item != shared_item {
+            return false;
         }
     }
 
-    return Some(shared_weight);
+    true
+}
+
+fn all_the_same_but_one(weights: &Vec<i32>) -> bool {
+    if weights.is_empty() {
+        return false;
+    }
+
+    for i in 0..weights.len() {
+        let shared_item = weights[(i + 1) % weights.len()];
+        let mut all_the_same = true;
+
+        for j in 0..weights.len() {
+            if i == j {
+                continue;
+            }
+
+            if weights[j] != shared_item {
+                all_the_same = false;
+                break;
+            }
+        }
+
+        if all_the_same {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 fn find_correct_weight(mut programs: HashMap<String, Program>) -> Option<usize> {
-    let mut shared_subtower_weights : HashMap<String, i32> = HashMap::new();
-    let mut imbalanced_name : String = String::new();
+    let root_name: String = find_root(&programs).expect("Could not find root.");
+    let mut queue: Vec<&String> = Vec::new();
 
-    for p in programs.values() {
-        if shared_subtower_weights.contains_key(&p.name) {
-            continue;
+    queue.push(&root_name);
+
+    while !queue.is_empty() {
+        let node_name = queue.pop().expect("Impossible.");
+        let node = programs.get(node_name).expect("Impossible.");
+        let mut weights: Vec<i32> = Vec::new();
+
+        for child in node.children.iter() {
+            weights.push(compute_subtower_weight(&child, &programs));
         }
 
-        if p.children.is_empty() {
-            shared_subtower_weights.insert(p.name.clone(), p.weight);
-        } else {
-            match all_children_same_weight(&p.children, &programs) {
-                Some(weight) => { shared_subtower_weights.insert(p.name.clone(), weight); },
-                None => { imbalanced_name = p.name.clone(); }
+        if !all_weights_the_same(&weights) {
+            for child in node.children.iter() {
+                queue.push(child);
+            }
+        }
+
+        if !all_weights_the_same(&weights) && all_the_same_but_one(&weights) {
+            println!("{:?}", weights);
+            println!("{:?}", node.children);
+
+            for child in node.children.iter() {
+                let child_node = programs.get(child).expect("Nope");
+                println!("Child {} has weight {}", child, child_node.weight);
             }
         }
     }
-
-    let imbalanced = programs.get(&imbalanced_name).expect("ciao tesoro");
-
-    println!("Imbalanced tower has root at {}.", imbalanced_name);
-
-    for child_name in &imbalanced.children {
-        match shared_subtower_weights.get(child_name) {
-            Some(w) => println!("Subtower weight is {}", w),
-            None => panic!("Can't recover sorry.")
-        }
-    }
-
     None
 }
 
 pub fn day_seven() {
     let all_programs = parse_input_programs("data/day_seven.txt");
 
-    let root_name : String = find_root(&all_programs).expect("Could not find root.");
+    let root_name: String = find_root(&all_programs).expect("Could not find root.");
     println!("Day 7 part 1. Root of the tree is program {}.", root_name);
 
     let result = find_correct_weight(all_programs).expect("Could not find correct weight.");
