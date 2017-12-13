@@ -79,6 +79,4 @@ pub fn day_thirteen() {
 
     println!("Day 13 part 1. Severity of the path is {}.", severity);
     println!("Day 13 part 2. Minimum delay is {}.", pico_delay);
-
-    // 35744 too low.
 }
