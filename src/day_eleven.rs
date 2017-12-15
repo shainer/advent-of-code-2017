@@ -14,47 +14,16 @@ impl Position {
 }
 
 fn min_distance(target_pos: &Position) -> i32 {
-    let mut pos = Position::new(0, 0);
+    let mut pos = Position::new(target_pos.row.abs(), target_pos.col.abs());
+    let m = min(pos.row, pos.col);
+    pos.row -= m;
+    pos.col -= m;
 
-    let mut steps: i32 = 0;
-    let diag = min(target_pos.row.abs(), target_pos.col.abs());
-
-    if target_pos.row > 0 {
-        pos.row += diag;
-
-        if target_pos.col > 0 {
-            pos.col += diag;
-        } else {
-            pos.col -= diag;
-        }
-    } else {
-        pos.row -= diag;
-
-        if target_pos.col > 0 {
-            pos.col += diag;
-        } else {
-            pos.col -= diag;
-        }
-    }
-
-    steps += diag;
-
-    if pos.col == target_pos.col {
-        let delta = ((target_pos.row.abs() - pos.row.abs()).abs() as f32 / 2.0).floor() as i32;
-        steps += delta;
-    } else if pos.row == target_pos.row {
-        let delta = (target_pos.col.abs() - pos.col.abs()).abs() * 2;
-        steps += delta;
-    } else {
-        panic!("Something went wrong.");
-    }
-
-    steps
+    m + pos.col + (pos.row as f32 / 2.0).floor() as i32
 }
 
 pub fn day_eleven() {
-    let mut contents = read_input("data/day_eleven.txt");
-    contents.pop();
+    let contents = read_input("data/day_eleven.txt");
     let directions: Vec<&str> = contents.split(',').collect();
 
     let mut child_position = Position::new(0, 0);
@@ -63,6 +32,10 @@ pub fn day_eleven() {
     for direction in directions {
         match direction {
             "se" => {
+                child_position.row += 1;
+                child_position.col += 1;
+            }
+            "se\n" => {
                 child_position.row += 1;
                 child_position.col += 1;
             }
@@ -91,7 +64,5 @@ pub fn day_eleven() {
 
     let final_distance = min_distance(&child_position);
     println!("Day 11 part 1. Distance is {}.", final_distance);
-
-    // Not working yet! This produces an incorrect solution.
     println!("Day 11 part 2. Max distance reached is {}.", max_distance);
 }
