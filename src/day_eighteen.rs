@@ -57,14 +57,15 @@ struct Command {
     operands: Vec<Operand>,
 }
 
-struct Simulator {
+// Simulator for part 1: has only one program and stores the last frequency played.
+struct Simulator<'a> {
     registers: HashMap<String, i64>,
-    commands: Vec<Command>,
+    commands: &'a Vec<Command>,
     last_sound: i64,
 }
 
-impl Simulator {
-    fn new(commands: Vec<Command>) -> Simulator {
+impl<'a> Simulator<'a> {
+    fn new(commands: &Vec<Command>) -> Simulator {
         Simulator {
             registers: HashMap::new(),
             commands,
@@ -151,174 +152,165 @@ impl Simulator {
     }
 }
 
-struct Simulator2 {
-    registers1: HashMap<String, i64>,
-    registers2: HashMap<String, i64>,
-    queue1: Vec<i64>,
-    queue2: Vec<i64>,
-    is_p1_waiting: bool,
-    is_p2_waiting: bool,
-    p1_count: u32,
-    commands: Vec<Command>,
+// Simulator for part 2: manages multiple "execution environments", one for each new program.
+// Handles communication between environments through queues of messages (integer values).
+struct Program {
+    registers: HashMap<String, i64>,
+    is_waiting: bool,
+    send_total_count: u32,
+    send_queue: Vec<i64>,
+    recv_queue: Vec<i64>,
 }
 
-impl Simulator2 {
-    fn new(commands: Vec<Command>) -> Simulator2 {
-        let mut sim = Simulator2 {
-            registers1: HashMap::new(),
-            registers2: HashMap::new(),
-            queue1: Vec::new(),
-            queue2: Vec::new(),
-            is_p1_waiting: false,
-            is_p2_waiting: false,
-            p1_count: 0,
-            commands,
-        };
+impl Program {
+    fn new(id: i64) -> Program {
+        let mut rs: HashMap<String, i64> = HashMap::new();
+        rs.insert(String::from("p"), id);
 
-        sim.registers1.insert(String::from("p"), 0);
-        sim.registers2.insert(String::from("p"), 1);
-        sim
+        Program {
+            registers: rs,
+            is_waiting: false,
+            send_total_count: 0,
+            send_queue: Vec::new(),
+            recv_queue: Vec::new(),
+        }
     }
 
-    fn get_register_value(&self, register: &String, program_id: u32) -> i64 {
-        if program_id == 0 {
-            return match self.registers1.get(register) {
-                Some(x) => *x,
-                None => 0,
-            };
-        }
-
-        match self.registers2.get(register) {
+    fn get_register_value(&self, register: &String) -> i64 {
+        match self.registers.get(register) {
             Some(x) => *x,
             None => 0,
         }
     }
 
-    fn get_naked_value_or_register(&self, operand: &Operand, program_id: u32) -> i64 {
+    fn get_naked_value_or_register(&self, operand: &Operand) -> i64 {
         match operand.get_value() {
             Some(x) => x,
             None => {
                 let register = operand.get_register().unwrap();
-                self.get_register_value(&register, program_id)
+                self.get_register_value(&register)
             }
         }
     }
 
-    fn run_one_command(&mut self, i: i64, program_id: u32) -> i64 {
-        let mut index = i;
-        let command: &Command = &self.commands[index as usize];
-        index += 1;
-        let mut ins: (String, i64) = (String::new(), 0);
+    fn run_command(&mut self, command: &Command) -> (i64, bool) {
+        let mut ip_offset: i64 = 1;
+        let mut has_new_message = false;
 
         match command.instruction {
             Instruction::PlaySound => {
-                let value = self.get_naked_value_or_register(&command.operands[0], program_id);
-
-                if program_id == 0 {
-                    self.queue2.insert(0, value);
-                } else {
-                    self.p1_count += 1;
-                    self.queue1.insert(0, value);
-                }
+                let value = self.get_naked_value_or_register(&command.operands[0]);
+                self.send_queue.insert(0, value);
+                self.send_total_count += 1;
+                has_new_message = true;
             }
             Instruction::Set => {
                 let register = command.operands[0].get_register().unwrap();
-                let value = self.get_naked_value_or_register(&command.operands[1], program_id);
-                ins = (register, value);
+                let value = self.get_naked_value_or_register(&command.operands[1]);
+                self.registers.insert(register, value);
             }
             Instruction::Add => {
                 let base_reg = command.operands[0].get_register().unwrap();
-                let old_value = self.get_register_value(&base_reg, program_id);
-                let addend = self.get_naked_value_or_register(&command.operands[1], program_id);
+                let old_value = self.get_register_value(&base_reg);
+                let addend = self.get_naked_value_or_register(&command.operands[1]);
 
-                ins = (base_reg, old_value + addend);
+                self.registers.insert(base_reg, old_value + addend);
             }
             Instruction::Mul => {
                 let base_reg = command.operands[0].get_register().unwrap();
-                let old_value = self.get_register_value(&base_reg, program_id);
-                let multiplier = self.get_naked_value_or_register(&command.operands[1], program_id);
+                let old_value = self.get_register_value(&base_reg);
+                let multiplier = self.get_naked_value_or_register(&command.operands[1]);
 
-                ins = (base_reg, old_value * multiplier);
+                self.registers.insert(base_reg, old_value * multiplier);
             }
             Instruction::Mod => {
                 let base_reg = command.operands[0].get_register().unwrap();
-                let old_value = self.get_register_value(&base_reg, program_id);
-                let m = self.get_naked_value_or_register(&command.operands[1], program_id);
+                let old_value = self.get_register_value(&base_reg);
+                let m = self.get_naked_value_or_register(&command.operands[1]);
 
-                ins = (base_reg, old_value % m);
+                self.registers.insert(base_reg, old_value % m);
             }
             Instruction::RecoverSound => {
                 let register = command.operands[0].get_register().unwrap();
 
-                if program_id == 0 {
-                    if self.queue1.is_empty() {
-                        index -= 1; // stay on the same instruction.
-                        self.is_p1_waiting = true;
-                    } else {
-                        self.is_p1_waiting = false;
-                        let value = self.queue1.pop().unwrap();
-                        ins = (register, value);
-                    }
+                if self.recv_queue.is_empty() {
+                    ip_offset = 0;
+                    self.is_waiting = true;
                 } else {
-                    if self.queue2.is_empty() {
-                        index -= 1;
-                        self.is_p2_waiting = true;
-                    } else {
-                        self.is_p2_waiting = false;
-                        let value = self.queue2.pop().unwrap();
-                        ins = (register, value);
-                    }
+                    self.is_waiting = false;
+                    let value = self.recv_queue.pop().unwrap();
+                    self.registers.insert(register, value);
                 }
             }
             Instruction::JumpIfPositive => {
-                let cond_value = self.get_naked_value_or_register(&command.operands[0], program_id);
+                let cond_value = self.get_naked_value_or_register(&command.operands[0]);
 
                 if cond_value > 0 {
-                    let offset = self.get_naked_value_or_register(&command.operands[1], program_id);
-                    index -= 1;
-                    index += offset;
+                    ip_offset = self.get_naked_value_or_register(&command.operands[1]);
                 }
             }
         };
 
-        if !ins.0.is_empty() {
-            if program_id == 0 {
-                self.registers1.insert(ins.0, ins.1);
-            } else {
-                self.registers2.insert(ins.0, ins.1);
-            }
-        }
+        (ip_offset, has_new_message)
+    }
+}
 
-        index
+struct Simulator2<'b> {
+    program0: Program,
+    program1: Program,
+    commands: &'b Vec<Command>,
+}
+
+impl<'b> Simulator2<'b> {
+    fn new(commands: &Vec<Command>) -> Simulator2 {
+        Simulator2 {
+            program0: Program::new(0),
+            program1: Program::new(1),
+            commands,
+        }
     }
 
     fn run_commands(&mut self) -> u32 {
+        let mut index0: i64 = 0;
         let mut index1: i64 = 0;
-        let mut index2: i64 = 0;
 
         loop {
+            if index0 >= 0 && index0 < self.commands.len() as i64 {
+                let command = &self.commands[index0 as usize];
+                let (offset, has_message) = self.program0.run_command(command);
+
+                index0 += offset;
+                if has_message {
+                    let message = self.program0.send_queue.pop().unwrap();
+                    self.program1.recv_queue.insert(0, message);
+                }
+            }
+
             if index1 >= 0 && index1 < self.commands.len() as i64 {
-                index1 = self.run_one_command(index1, 0);
+                let command = &self.commands[index1 as usize];
+                let (offset, has_message) = self.program1.run_command(command);
+
+                index1 += offset;
+                if has_message {
+                    let message = self.program1.send_queue.pop().unwrap();
+                    self.program0.recv_queue.insert(0, message);
+                }
             }
 
-            if index2 >= 0 && index2 < self.commands.len() as i64 {
-                index2 = self.run_one_command(index2, 1);
-            }
-
-            if self.is_p1_waiting && self.is_p2_waiting {
+            if self.program0.is_waiting && self.program1.is_waiting {
                 println!("Terminated by deadlock!");
                 break;
             }
 
-            if (index1 < 0 || index1 >= self.commands.len() as i64) &&
-                (index2 < 0 || index2 >= self.commands.len() as i64)
+            if (index0 < 0 || index0 >= self.commands.len() as i64) &&
+                (index1 < 0 || index1 >= self.commands.len() as i64)
             {
                 println!("Both programs reached the end.");
                 break;
             }
         }
 
-        return self.p1_count;
+        self.program1.send_total_count
     }
 }
 
@@ -372,15 +364,20 @@ fn parse_commands(program: &String) -> Vec<Command> {
 pub fn day_eighteen() {
     let program = read_input("data/day_eighteen.txt");
     let commands = parse_commands(&program);
-    // let mut simulator = Simulator::new(commands);
-    //
-    // let result = simulator.run_commands();
-    // match result {
-    //     Some(x) => println!("Day 18 part 1. Result is {}.", x),
-    //     None => panic!("Could not compute solution."),
-    // };
 
-    let mut new_simulator = Simulator2::new(commands);
-    println!("Day 18 part 2. Result is {}", new_simulator.run_commands());
-    // 8128 too high.
+    {
+        let mut simulator = Simulator::new(&commands);
+        match simulator.run_commands() {
+            Some(x) => println!("Day 18 part 1. Result is {}.", x),
+            None => panic!("Could not compute solution."),
+        };
+    }
+
+    {
+        let mut new_simulator = Simulator2::new(&commands);
+        println!(
+            "Day 18 part 2. Program 1 has sent {} messages.",
+            new_simulator.run_commands()
+        );
+    }
 }
