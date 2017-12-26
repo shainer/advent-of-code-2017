@@ -1,7 +1,7 @@
 pub fn day_three() {
     let input = 325489;
     let mut base = 1;
-    let mut square = 0;
+    let mut square;
 
     loop {
         square = base * base;

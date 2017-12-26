@@ -1,4 +1,3 @@
-use std::cmp::max;
 use std::cmp::min;
 use utils::read_input;
 

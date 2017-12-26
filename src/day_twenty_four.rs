@@ -88,12 +88,18 @@ fn find_max_strength_with_min_len(
     strength: u32,
     length: u32,
     min_length: u32,
+    bridge: Vec<(u32, u32)>,
 ) {
     let good_ports = ports.get(&next_number);
 
     if good_ports.is_none() || good_ports.unwrap().is_empty() {
         unsafe {
             if length >= min_length && strength > MAX_STRENGTH {
+                println!(
+                    "-- Got new max strength {} for bridge {:?}",
+                    strength,
+                    bridge
+                );
                 MAX_STRENGTH = strength;
                 return;
             }
@@ -114,6 +120,8 @@ fn find_max_strength_with_min_len(
         }
 
         let new_strength = strength + port.c0 + port.c1;
+        let mut new_bridge = bridge.clone();
+        new_bridge.push((port.c0, port.c1));
         let number: u32;
 
         if next_number == port.c0 {
@@ -122,7 +130,14 @@ fn find_max_strength_with_min_len(
             number = port.c0;
         }
 
-        find_max_strength_with_min_len(clone, number, new_strength, length + 1, min_length);
+        find_max_strength_with_min_len(
+            clone,
+            number,
+            new_strength,
+            length + 1,
+            min_length,
+            new_bridge,
+        );
     }
 }
 
@@ -133,7 +148,7 @@ pub fn day_twenty_four() {
             MAX_STRENGTH = 0;
             MAX_LENGTH = 0;
         }
-        find_max_strength_with_min_len(ports, 0, 0, 0, 0);
+        find_max_strength_with_min_len(ports, 0, 0, 0, 0, Vec::new());
 
         unsafe {
             println!("Day 24 part 1. Maximum strength is {}.", MAX_STRENGTH);
@@ -145,7 +160,7 @@ pub fn day_twenty_four() {
         MAX_STRENGTH = 0;
         MAX_LENGTH = 0;
         find_max_length(ports.clone(), 0, 0);
-        find_max_strength_with_min_len(ports, 0, 0, 0, MAX_LENGTH);
+        find_max_strength_with_min_len(ports, 0, 0, 0, MAX_LENGTH, Vec::new());
         println!(
             "Day 24 part 2. Strength of longest bridge is {}.",
             MAX_STRENGTH

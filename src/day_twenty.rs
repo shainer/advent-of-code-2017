@@ -220,7 +220,7 @@ fn find_collision(p1: &Particle, p2: &Particle) -> Option<Vec<f64>> {
 pub fn day_twenty() {
     let contents = read_input("data/day_twenty.txt");
     let swarm: Vec<Particle> = parse_swarm(&contents);
-    use std::u32::MAX;
+    use std::u64::MAX;
     let mut min_distance = MAX;
     let mut min_particle = 0;
     let mut index = 0;

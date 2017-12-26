@@ -16,21 +16,8 @@ impl Program {
         }
     }
 
-    fn add_child(mut self, c: String) {
-        self.children.push(c);
-    }
-
     fn has_child(&self, child: &String) -> bool {
         self.children.contains(child)
-    }
-
-    fn print(&self) {
-        println!(
-            "Name {} and weight {}, children {:?}",
-            self.name,
-            self.weight,
-            self.children
-        );
     }
 }
 
@@ -145,7 +132,7 @@ fn all_the_same_but_one(weights: &Vec<i32>) -> bool {
     return false;
 }
 
-fn find_correct_weight(mut programs: HashMap<String, Program>) -> Option<usize> {
+fn find_correct_weight(programs: HashMap<String, Program>) -> Option<usize> {
     let root_name: String = find_root(&programs).expect("Could not find root.");
     let mut queue: Vec<&String> = Vec::new();
 

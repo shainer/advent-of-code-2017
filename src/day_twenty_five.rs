@@ -46,7 +46,7 @@ impl TuringMachine {
     fn run(&mut self) {
         self.tape.push(0);
 
-        for steps in 0..self.diagnostic_steps {
+        for _ in 0..self.diagnostic_steps {
             let value = self.tape[self.cursor];
 
             match self.current_state {
