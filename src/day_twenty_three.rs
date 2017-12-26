@@ -98,71 +98,32 @@ impl<'a> Simulator<'a> {
         *self.instruction_count.get(&i).unwrap()
     }
 
-    // fn run_code(&mut self) {
-    //     let mut a = 1;
-    //     let mut b = 67;
-    //     let mut c = b;
-    //     let mut g = 0;
-    //
-    //     b *= 100;
-    //     b -= 100000;
-    //     c = b;
-    //     c -= 17000;
-    //     let mut f = 1;
-    //     let mut d = 2;
-    //     let mut e = 0;
-    //     let mut h = 0;
-    //
-    //     loop {
-    //         e = 2;
-    //         loop {
-    //             g = d;
-    //             g *= e;
-    //             g -= b;
-    //
-    //             if g == 0 {
-    //                 f = 0;
-    //             }
-    //
-    //             e -= 1;
-    //             g = e;
-    //             g -= b;
-    //
-    //             if g == 0 {
-    //                 break;
-    //             }
-    //         }
-    //
-    //         d -= 1;
-    //         g = d;
-    //         g -= b;
-    //         if g == 0 {
-    //             break;
-    //         }
-    //     }
-    //
-    //     if f == 0 {
-    //         h -= 1;
-    //     }
-    //
-    //     jnz f 2
-    //     sub h -1
-    //     set g b
-    //     sub g c
-    //     jnz g 2
-    //     jnz 1 3
-    //     sub b -17
-    //     jnz 1 -23
-    //
-    // }
+    // For the 2nd part, I translated the assembly into Rust code and simplified it to
+    // make it complete in a reasonable time. So we directly execute that and return
+    // the result instead of simulating the execution of instructions.
+    fn run_code(&self) -> i64 {
+        let mut b: i64 = 106700;
+        let mut h: i64 = 0;
 
-    // 1001/1000 too high.
-    // 500/500 too low.
-    // 750 incorrect.
+        while b <= 123700 {
+            let m = (b as f64).sqrt().ceil() as i64;
+
+            // It is enough to find one d that divides b exactly.
+            for d in 2..m {
+                if b % d == 0 {
+                    h += 1;
+                    break;
+                }
+            }
+
+            b += 17;
+        }
+
+        h
+    }
+
     fn run_commands(&mut self) {
         let mut index: i64 = 0;
-        let mut count = 0;
-        let limit = 51;
 
         while index >= 0 && index < self.commands.len() as i64 {
             let command = &self.commands[index as usize];
@@ -174,7 +135,6 @@ impl<'a> Simulator<'a> {
             }
 
             index += 1;
-            count += 1;
 
             match command.instruction {
                 Instruction::PlaySound => {
@@ -183,10 +143,6 @@ impl<'a> Simulator<'a> {
                 Instruction::Set => {
                     let register = command.operands[0].get_register().unwrap();
                     let value = self.get_naked_value_or_register(&command.operands[1]);
-
-                    if count < limit {
-                        println!("[{}] Set {} to {}", index - 1, register, value);
-                    }
                     self.registers.insert(register, value);
                 }
                 Instruction::Add => {
@@ -201,15 +157,6 @@ impl<'a> Simulator<'a> {
                     let old_value = self.get_register_value(&base_reg);
                     let addend = self.get_naked_value_or_register(&command.operands[1]);
 
-                    if count < limit {
-                        println!(
-                            "[{}] {} - {} = {}",
-                            index - 1,
-                            base_reg,
-                            addend,
-                            old_value - addend
-                        );
-                    }
                     self.registers.insert(base_reg, old_value - addend);
                 }
                 Instruction::Mul => {
@@ -217,15 +164,6 @@ impl<'a> Simulator<'a> {
                     let old_value = self.get_register_value(&base_reg);
                     let multiplier = self.get_naked_value_or_register(&command.operands[1]);
 
-                    if count < limit {
-                        println!(
-                            "[{}] {} * {} = {}",
-                            index - 1,
-                            base_reg,
-                            multiplier,
-                            old_value * multiplier
-                        );
-                    }
                     self.registers.insert(base_reg, old_value * multiplier);
                 }
                 Instruction::Mod => {
@@ -243,20 +181,8 @@ impl<'a> Simulator<'a> {
 
                     if cond_value != 0 {
                         let offset = self.get_naked_value_or_register(&command.operands[1]);
-                        if count < limit {
-                            println!("[{}] JNZ by {}", index - 1, offset);
-                        }
                         index -= 1;
                         index += offset;
-                    } else {
-                        if count < limit {
-                            println!(
-                                "[{}] JNZ did not go, value of {} is {}",
-                                index - 1,
-                                command.operands[0].get_register().unwrap(),
-                                cond_value
-                            );
-                        }
                     }
                 }
                 Instruction::JumpIfPositive => {
@@ -323,25 +249,18 @@ fn parse_commands(program: &String) -> Vec<Command> {
 }
 
 pub fn day_twenty_three() {
-    let program = read_input("data/day_twenty_three_optimized.txt");
+    let program = read_input("data/day_twenty_three.txt");
     let commands = parse_commands(&program);
 
-    // {
-    //     let mut simulator = Simulator::new(&commands);
-    //     simulator.run_commands();
-    //     println!(
-    //         "Day 23 part 1. Mul has been executed {} times.",
-    //         simulator.get_instruction_count(Instruction::Mul)
-    //     );
-    // }
+    let mut simulator = Simulator::new(&commands);
+    simulator.run_commands();
+    println!(
+        "Day 23 part 1. Mul has been executed {} times.",
+        simulator.get_instruction_count(Instruction::Mul)
+    );
 
-    {
-        let mut simulator = Simulator::new(&commands);
-        simulator.registers.insert(String::from("a"), 1);
-        simulator.run_commands();
-        println!(
-            "Day 23 part 2. Register h has value {}.",
-            simulator.get_register_value(&String::from("h"))
-        );
-    }
+    println!(
+        "Day 23 part 2. Register h has value {}.",
+        simulator.run_code()
+    );
 }
